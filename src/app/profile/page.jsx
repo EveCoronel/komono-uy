@@ -43,9 +43,9 @@ export default function ProfilePage() {
         <ProfileInfo />
       </section>
 
-      <section className="mb-8">
+      {/* <section className="mb-8">
         <AddressesGrid />
-      </section>
+      </section> */}
 
       <section>
         <h2 className="text-xl font-semibold mb-2">Mis órdenes</h2>

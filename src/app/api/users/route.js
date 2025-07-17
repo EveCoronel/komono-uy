@@ -64,25 +64,25 @@ export async function PUT(request) {
 
     const userData = await request.json();
 
-    // Si viene passwordActual y nuevaPassword, procesar cambio de contraseña
-    if (userData.passwordActual && userData.nuevaPassword) {
+    // Si viene currentPassword y newPassword, procesar cambio de contraseña
+    if (userData.currentPassword && userData.newPassword) {
       const user = await User.findById(decoded.userId);
-      const valid = await bcrypt.compare(userData.passwordActual, user.password);
+      const valid = await bcrypt.compare(userData.currentPassword, user.password);
       if (!valid) {
         return NextResponse.json(
           { error: 'Contraseña actual incorrecta' },
           { status: 400 }
         );
       }
-      user.password = await bcrypt.hash(userData.nuevaPassword, 10);
+      user.password = userData.newPassword;
       await user.save();
       return NextResponse.json({ message: "Contraseña actualizada" });
     }
 
     // Actualización general (sin contraseña)
     const fieldsToUpdate = { ...userData };
-    delete fieldsToUpdate.passwordActual;
-    delete fieldsToUpdate.nuevaPassword;
+    delete fieldsToUpdate.currentPassword;
+    delete fieldsToUpdate.newPassword;
     delete fieldsToUpdate.password; // nunca actualizar password así
 
     const updatedUser = await User.findByIdAndUpdate(

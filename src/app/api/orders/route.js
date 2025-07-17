@@ -3,6 +3,7 @@ import { sendBusinessOrderNotification, sendUserOrderConfirmation, sendNewAccoun
 import Counter from "@/models/Counter";
 import Order from "@/models/Order";
 import User from "@/models/User";
+import Product from "@/models/Product"; // Asegúrate de importar el modelo
 
 // Helper: compara dos direcciones
 function sameAddress(a, b) {
@@ -67,6 +68,25 @@ export async function POST(req) {
                 console.log("Nueva dirección:", nuevaDireccion);
                 await addAddressIfNotExists(user, nuevaDireccion);
             }
+        }
+
+        // Validar stock y disminuirlo
+        for (const item of data.cart) {
+            const product = await Product.findById(item._id);
+            if (!product) {
+                return Response.json({ error: `Producto no encontrado: ${item._id}` }, { status: 404 });
+            }
+            if (product.stock < item.quantity) {
+                return Response.json({ error: `Stock insuficiente para ${product.name}` }, { status: 400 });
+            }
+        }
+
+        // Disminuir stock
+        for (const item of data.cart) {
+            await Product.findByIdAndUpdate(
+                item._id,
+                { $inc: { stock: -item.quantity } }
+            );
         }
 
         let orderNumber;

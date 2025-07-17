@@ -9,17 +9,19 @@ import { Label } from "../../components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import { useAuth } from "../../context/AuthContext";
-
-function Spinner() {
-    // Puedes mejorar el spinner según tu diseño
-    return <span className="animate-spin rounded-full border-2 border-t-2 border-gray-200 h-4 w-4 inline-block mr-2"></span>;
-}
+import { Spinner } from "@/components/ui/spinner";
+import { toast } from "sonner";
 
 export default function AuthPage() {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
-    const { refreshUser } = useAuth();
+    const { user, loading, refreshUser } = useAuth();
+
+    if(loading || user){
+        router.push("/");
+        return; // Prevent rendering the auth page if user is already logged in
+    }
 
     const handleSubmit = async (e, isLogin) => {
         e.preventDefault();
@@ -72,6 +74,7 @@ export default function AuthPage() {
             router.push("/");
             router.refresh();
         } catch (err) {
+            toast.error(err instanceof Error ? err.message : "An error occurred");
             setError(err instanceof Error ? err.message : "An error occurred");
         } finally {
             setIsLoading(false);

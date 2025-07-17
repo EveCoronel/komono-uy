@@ -10,6 +10,7 @@ const gridCols = {
 };
 
 export default function ProductsGrid({ products, gridSize = "4" }) {
+    products = products.filter(product => product.stock > 0);
     return (
         <section>
             <h2 className="text-2xl font-semibold text-gray-800 mb-8">

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
 
 export default function ResetPasswordPage() {
     const [nuevaPassword, setNuevaPassword] = useState("");
@@ -17,6 +18,13 @@ export default function ResetPasswordPage() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const token = searchParams.get("token");
+
+    const { user, loading } = useAuth();
+
+    if (loading || user) {
+        router.push("/");
+        return; // Prevent rendering the auth page if user is already logged in
+    }
 
     const handleSubmit = async (e) => {
         e.preventDefault();

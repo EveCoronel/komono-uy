@@ -49,7 +49,7 @@ export default function CategoriesGrid({ categories }) {
       </h2>
 
       {/* Grid para desktop (máximo 6, con botón si hay más) */}
-      <div className="hidden md:grid grid-cols-3 gap-6 mb-6">
+      <div className="hidden md:grid grid-cols-3 gap-6 mb-6 items-center">
         {desktopBig.map((category, i) => {
           const colors = bigColors[i];
           return (
@@ -59,7 +59,7 @@ export default function CategoriesGrid({ categories }) {
               className={`group ${colors.bg} ${colors.hover} border ${colors.border} 
               p-6 rounded-xl text-center transition-colors shadow-sm 
               cursor-pointer flex flex-col items-center justify-center 
-              hover:scale-[1.02] min-h-[100px] md:min-h-[120px]`}
+              hover:scale-[1.02] min-h-[70px] md:min-h-[90px]`}
             >
               <h3 className={`text-xl font-bold ${colors.text} mb-0.5`}>
                 {category.name}
@@ -79,7 +79,7 @@ export default function CategoriesGrid({ categories }) {
               key={category.short_id}
               className={`group ${colors.bg} ${colors.hover} border ${colors.border}
               rounded-lg p-4 text-center cursor-pointer transition-colors
-              flex flex-col items-center justify-center shadow-sm hover:scale-[1.03] min-h-[80px]`}
+              flex flex-col items-center justify-center shadow-sm hover:scale-[1.03] min-h-[60px]`}
             >
               <h4 className={`text-base font-semibold ${colors.text}`}>
                 {category.name}
@@ -88,14 +88,16 @@ export default function CategoriesGrid({ categories }) {
           );
         })}
 
-        {/* Botón "Ver más categorías" en desktop */}
+        {/* Botón "Ver más categorías" centrado en desktop */}
         {hasMoreDesktop && (
-          <button
-            className="group bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg p-4 text-center transition-colors shadow-sm cursor-pointer flex flex-col items-center justify-center min-h-[100px] font-semibold text-gray-700"
-            onClick={() => router.push('/products')}
-          >
-            Ver más categorías +
-          </button>
+          <div className="col-span-3 flex justify-center">
+            <button
+              className="group bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg p-4 text-center transition-colors shadow-sm cursor-pointer flex flex-col items-center justify-center min-h-[60px] font-semibold text-gray-700"
+              onClick={() => router.push('/products')}
+            >
+              Ver más categorías +
+            </button>
+          </div>
         )}
       </div>
 

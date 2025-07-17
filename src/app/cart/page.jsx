@@ -52,17 +52,19 @@ export default function CartPage() {
                                 key={item._id}
                                 className="flex items-center border rounded-xl p-4 shadow bg-white relative group transition hover:shadow-md"
                             >
-                                <div className="w-24 h-24 bg-gray-50 flex items-center justify-center overflow-hidden rounded-md border border-gray-100">
-                                    {item.images && item.images.length > 0 ? (
-                                        <img
-                                            src={item.images[0]}
-                                            alt={item.name}
-                                            className="w-full h-full object-contain"
-                                        />
-                                    ) : (
-                                        <span className="text-sm text-gray-400">Sin imagen</span>
-                                    )}
-                                </div>
+                                <Link href={`/products/${item._id}`}>
+                                    <div className="w-24 h-24 bg-gray-50 flex items-center justify-center overflow-hidden rounded-md border border-gray-100">
+                                        {item.images && item.images.length > 0 ? (
+                                            <img
+                                                src={item.images[0]}
+                                                alt={item.name}
+                                                className="w-full h-full object-contain"
+                                            />
+                                        ) : (
+                                            <span className="text-sm text-gray-400">Sin imagen</span>
+                                        )}
+                                    </div>
+                                </Link>
 
                                 <div className="ml-4 flex-1">
                                     <h2 className="text-lg font-semibold text-gray-900">{item.name}</h2>

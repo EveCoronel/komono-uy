@@ -1,6 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
-import Link from 'next/link'
+import Link from "next/link";
+import clsx from "clsx";
+import ReviewModal from "./ReviewModal";
+import { Star } from "lucide-react";
 
 function formatDate(dateStr) {
   if (!dateStr) return "-";
@@ -16,39 +19,51 @@ function formatAddress(addr) {
 
 export default function OrdersGrid({ userId }) {
   const [orders, setOrders] = useState([]);
+  const [userReviews, setUserReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [metadata, setMetadata] = useState({});
+  const [reviewProduct, setReviewProduct] = useState(null); // Cambia el estado
 
   useEffect(() => {
     if (!userId) return;
     setLoading(true);
 
-    // Promise.all para manejar múltiples fetches
     Promise.all([
-      fetch(`/api/users/${userId}/orders`)
-        .then(res => {
-          if (!res.ok) throw new Error('Error cargando órdenes');
-          return res.json();
-        }),
-      fetch("/api/metadata")
-        .then(res => {
-          if (!res.ok) throw new Error('Error cargando metadata');
-          return res.json();
-        })
+      fetch(`/api/users/${userId}/orders`).then(res => res.ok ? res.json() : []),
+      fetch("/api/metadata").then(res => res.ok ? res.json() : {}),
+      fetch(`/api/reviews/users/${userId}`).then(res => res.ok ? res.json() : []) // <-- reviews del usuario
     ])
-      .then(([ordersData, metadataData]) => {
+      .then(([ordersData, metadataData, reviewsData]) => {
         setOrders(ordersData);
         setMetadata(metadataData);
+        setUserReviews(reviewsData); // <-- reviews del usuario
       })
-      .catch((error) => {
-        console.error('Error:', error);
+      .catch(err => {
+        console.error("Error:", err);
         setOrders([]);
       })
       .finally(() => setLoading(false));
   }, [userId]);
 
+  const orderStates = metadata.orderStates || [];
 
-  const orderStates = metadata.orderStates
+  const getStatusLabel = (statusId) => {
+    const status = orderStates.find(s => s.id === statusId);
+    return status ? status.label : "Consultar";
+  };
+
+  const getStatusColor = (statusId) => {
+    switch (statusId) {
+      case "pending_payment": return "bg-yellow-100 text-yellow-800";
+      case "paid": return "bg-blue-100 text-blue-800";
+      case "preparing": return "bg-orange-100 text-orange-800";
+      case "ready_pickup": return "bg-purple-100 text-purple-800";
+      case "shipped": return "bg-blue-100 text-blue-800";
+      case "delivered": return "bg-green-100 text-green-800";
+      case "cancelled": return "bg-red-100 text-red-800";
+      default: return "bg-gray-100 text-gray-800";
+    }
+  };
 
   if (loading) {
     return <div className="py-8 text-center text-gray-500">Cargando órdenes...</div>;
@@ -61,50 +76,86 @@ export default function OrdersGrid({ userId }) {
   return (
     <div className="space-y-6">
       {orders.map(order => (
-        <div key={order._id} className="bg-white rounded-xl shadow p-4">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-2 gap-2">
+        <div key={order._id} className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+          {/* Encabezado */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-4">
             <div>
-              <span className="font-semibold text-gray-800">Nº #{order.orderNumber || ""}</span>
-              <span className="ml-3 text-gray-500 text-sm">({formatDate(order.createdAt)})</span>
+              <h3 className="text-lg font-semibold text-gray-800">
+                Pedido #{order.orderNumber}
+              </h3>
+              <p className="text-sm text-gray-500">{formatDate(order.createdAt)}</p>
             </div>
-            <div className="text-xs">
-              Estado: <span className="font-semibold">
-                {orderStates?.find(state => state.id === order.status)?.label || 'Consultar'}
+            <div>
+              <span className={clsx("text-xs px-2 py-1 rounded-full font-medium", getStatusColor(order.status))}>
+                {getStatusLabel(order.status)}
               </span>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-4 mb-2">
-            <div>
-              <span className="font-semibold text-gray-600 mr-1">Total:</span>
-              <span className="text-lg font-bold">${order.total?.toFixed(2)}</span>
+
+          {/* Detalles */}
+          <div className="flex flex-wrap items-center gap-4 mb-4">
+            <div className="text-sm text-gray-700">
+              <span className="font-semibold">Total: </span>${order.total?.toFixed(2)}
             </div>
-            <div>
-              <span className="font-semibold text-gray-600 mr-1">Entrega:</span>
+            <div className="text-sm text-gray-700">
+              <span className="font-semibold">Entrega: </span>
               {order.deliveryType === "envio"
                 ? `Envío a domicilio - ${formatAddress(order.address)}`
-                : `Retiro en ${order.pickupPoint || "Sucursal"}`
-              }
+                : `Retiro en ${order.pickupPoint || "Sucursal"}`}
             </div>
           </div>
+
           {/* Productos */}
-          <div className="flex flex-wrap gap-3 mt-3">
-            {order.products.map(({ productId, quantity }) => (
-              <Link href={`/products/${productId._id}`}>
-                <div key={productId._id} className="flex items-center gap-2 border rounded p-2 bg-gray-50 min-w-[160px]">
-                  {productId.images && (
-                    <img src={productId.images[0]} alt={productId.name} className="w-12 h-12 object-cover rounded" />
-                  )}
-                  <div>
-                    <div className="font-medium text-gray-900">{productId.name}</div>
-                    <div className="text-xs text-gray-500">Cantidad: {quantity}</div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+            {order.products.map(({ productId, quantity }) => {
+              // Verifica si el usuario ya hizo review de este producto en esta orden
+              const alreadyReviewed = userReviews.find(
+                r => r.product === productId._id && r.order === order._id
+              );
+              return (
+                <div key={productId._id} className="relative">
+                  <div className="flex items-start justify-between border border-gray-200 bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition">
+                    <Link href={`/products/${productId._id}`} className="flex items-center gap-3 flex-1">
+                      {productId.images?.[0] && (
+                        <img src={productId.images[0]} alt={productId.name} className="w-14 h-14 object-cover rounded" />
+                      )}
+                      <div className="text-sm">
+                        <p className="font-medium text-gray-900">{productId.name}</p>
+                        <p className="text-gray-500">Cantidad: {quantity}</p>
+                      </div>
+                    </Link>
+                    {order.status === "delivered" && (
+                      alreadyReviewed ? (
+                        <span className="ml-2 text-orange-400 text-xs font-semibold px-2 py-1 rounded bg-orange-100 border border-orange-200 flex items-center gap-1">
+                          <Star size={16} className="fill-orange-400 text-orange-400" />
+                          {alreadyReviewed.rating}/5
+                        </span>
+                      ) : (
+                        <button
+                          className="ml-2 flex items-center gap-1 text-yellow-500 hover:text-yellow-600 cursor-pointer"
+                          onClick={() => setReviewProduct({ productId: productId._id, productName: productId.name, orderId: order._id })}
+                          title="Dejar reseña"
+                        >
+                          <Star size={20} />
+                          <span className="text-xs">Valorar</span>
+                        </button>
+                      )
+                    )}
                   </div>
+                  {/* Modal solo para el producto seleccionado */}
+                  {reviewProduct && reviewProduct.productId === productId._id && (
+                    <ReviewModal
+                      open={!!reviewProduct}
+                      onClose={() => setReviewProduct(null)}
+                      productId={productId._id}
+                      productName={productId.name}
+                      orderId={order._id}
+                      userId={userId}
+                    />
+                  )}
                 </div>
-              </Link>
-            ))}
-          </div>
-          {/* Última actualización */}
-          <div className="mt-2 text-xs text-gray-400 text-right">
-            Actualizado: {formatDate(order.lastUpdated)}
+              );
+            })}
           </div>
         </div>
       ))}
