@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import connectDB from "@/lib/db";
 import User from "@/models/User";
+import Product from "@/models/Product";
 
 export async function GET(req, { params }) {
     const { id } = await params;

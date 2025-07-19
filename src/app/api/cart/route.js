@@ -1,6 +1,7 @@
 import Cart from "@/models/Cart";
 import connectDB from "@/lib/db";
 import { NextResponse } from "next/server";
+import Product from "@/models/Product";
 
 export async function POST(req) {
   await connectDB();
