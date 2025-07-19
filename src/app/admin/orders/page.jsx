@@ -73,7 +73,15 @@ export default function AdminOrdersPage() {
                       await fetch("/api/notifications", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ user, content, title, order: { _id: orderId, orderNumber: orders.find(o => o._id === orderId)?.orderNumber }, type: "order_status", isGlobal: false, link }),
+                        body: JSON.stringify({
+                          user: orderData.user,
+                          content,
+                          title,
+                          order: { _id: orderId, orderNumber: orderData.orderNumber },
+                          type: "order_status",
+                          isGlobal: false,
+                          link,
+                        }),
                       });
                     } catch (error) {
                       console.error("Error al enviar notificación:", error);
