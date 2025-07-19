@@ -1,7 +1,14 @@
 "use client";
-import { useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+    Card,
+    CardHeader,
+    CardTitle,
+    CardContent,
+    CardFooter,
+    CardDescription,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -15,40 +22,50 @@ export default function ResetPasswordPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [mensaje, setMensaje] = useState("");
     const [error, setError] = useState("");
-    const searchParams = useSearchParams();
+
     const router = useRouter();
-    const token = searchParams.get("token");
+    const searchParams = useSearchParams(); // ✅ usar hook de Next.js
+    const token = searchParams.get("token"); // ✅ forma correcta
 
     const { user, loading } = useAuth();
 
-    if (loading || user) {
-        router.push("/");
-        return; // Prevent rendering the auth page if user is already logged in
-    }
+    useEffect(() => {
+        if (!token) {
+            setError("Token no válido o faltante.");
+        }
+    }, [token]);
+
+    useEffect(() => {
+        if (!loading && user) {
+            router.push("/");
+        }
+    }, [loading, user, router]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsLoading(true);
         setError("");
         setMensaje("");
+
+        if (nuevaPassword !== confirmPassword) {
+            setError("Las contraseñas no coinciden");
+            setIsLoading(false);
+            return;
+        }
+
         try {
-            if (nuevaPassword !== confirmPassword) {
-                setError("Las contraseñas no coinciden");
-                return;
-            }
-            console.log("Token:", token);
             const res = await fetch("/api/auth/forgot/reset", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ token, nuevaPassword }),
             });
+
             const data = await res.json();
             if (res.ok) {
                 toast.success("¡Contraseña actualizada! Ahora puedes iniciar sesión.");
                 setMensaje("¡Contraseña actualizada! Ahora puedes iniciar sesión.");
                 setTimeout(() => router.push("/login"), 2000);
             } else {
-                // toast.error(data.error || "Error al actualizar la contraseña");
                 setError(data.error || "Error al actualizar la contraseña");
             }
         } catch {
@@ -79,7 +96,7 @@ export default function ResetPasswordPage() {
                                     type="password"
                                     required
                                     value={nuevaPassword}
-                                    onChange={e => setNuevaPassword(e.target.value)}
+                                    onChange={(e) => setNuevaPassword(e.target.value)}
                                     autoComplete="new-password"
                                 />
                                 <Label htmlFor="confirmPassword">Confirmar contraseña</Label>
@@ -89,7 +106,7 @@ export default function ResetPasswordPage() {
                                     type="password"
                                     required
                                     value={confirmPassword}
-                                    onChange={e => setConfirmPassword(e.target.value)}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
                                     autoComplete="new-password"
                                 />
                             </div>

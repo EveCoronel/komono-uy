@@ -2,26 +2,26 @@
 import "rc-slider/assets/index.css";
 import { useState, useEffect } from "react";
 import ProductsGrid from "@/components/ProductsGrid";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Slider, { Range } from "rc-slider";
 
-export default function ProductsPageClient({ products }) {
+export default function ProductsPageClient({ products, searchParams }) {
     const router = useRouter();
-    const searchParams = useSearchParams();
+    // const searchParams = useSearchParams();
 
     // Inicializar estados con valores de la URL o vacíos
     const [categorias, setCategorias] = useState([]);
     const [subcategorias, setSubcategorias] = useState([]);
 
-    const [categoria, setCategoria] = useState(searchParams.get("categoria") || "");
-    const [subcategoria, setSubcategoria] = useState(searchParams.get("subcategoria") || "");
+    const [categoria, setCategoria] = useState(searchParams?.get("categoria") || "");
+    const [subcategoria, setSubcategoria] = useState(searchParams?.get("subcategoria") || "");
     // Aquí extraemos precioMin y precioMax del searchParams para inicializar precioRange
-    const precioMinParam = Number(searchParams.get("precioMin")) || 0;
-    const precioMaxParam = Number(searchParams.get("precioMax")) || 5000;
+    const precioMinParam = Number(searchParams?.get("precioMin")) || 0;
+    const precioMaxParam = Number(searchParams?.get("precioMax")) || 5000;
     const [precioRange, setPrecioRange] = useState([precioMinParam, precioMaxParam]);
 
-    const [orden, setOrden] = useState(searchParams.get("orden") || "");
-    const [busqueda, setBusqueda] = useState(searchParams.get("busqueda") || "");
+    const [orden, setOrden] = useState(searchParams?.get("orden") || "");
+    const [busqueda, setBusqueda] = useState(searchParams?.get("busqueda") || "");
 
     const onPrecioChange = (value) => {
         setPrecioRange(value);

@@ -52,7 +52,7 @@ export default function ProductPage() {
         }
     }, [user, id]);
 
-    
+
     const handleFav = async (e) => {
         e.stopPropagation();
         if (!user) {
@@ -110,11 +110,14 @@ export default function ProductPage() {
     const maxQty = Number(product.stock) || 0;
 
     const handleCopyLink = () => {
+        if (typeof window === "undefined") return; // 🚫 no hacer nada en el servidor
+
         navigator.clipboard.writeText(window.location.href);
         setCopied(true);
         toast.success("¡Link copiado!");
         setTimeout(() => setCopied(false), 1500);
     };
+
 
     return (
         <div className="max-w-4xl mx-auto p-0 sm:p-4 md:py-8">
