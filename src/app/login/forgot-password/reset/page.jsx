@@ -16,29 +16,29 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 
+// 👇 evita pre-render, fuerza CSR (Client-side rendering)
+export const dynamic = "force-dynamic";
+
 export default function ResetPasswordPage() {
     const [nuevaPassword, setNuevaPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [mensaje, setMensaje] = useState("");
     const [error, setError] = useState("");
-    const [isClient, setIsClient] = useState(false);
+    const [token, setToken] = useState("");
 
     const router = useRouter();
-    const searchParams = useSearchParams(); // ✅ usar hook de Next.js
-    const token = searchParams.get("token"); // ✅ forma correcta
-
+    const searchParams = useSearchParams();
     const { user, loading } = useAuth();
 
     useEffect(() => {
-        setIsClient(true);
-    }, []);
-
-    useEffect(() => {
-        if (!token) {
+        const tokenParam = searchParams.get("token");
+        if (!tokenParam) {
             setError("Token no válido o faltante.");
+        } else {
+            setToken(tokenParam);
         }
-    }, [token]);
+    }, [searchParams]);
 
     useEffect(() => {
         if (!loading && user) {
@@ -80,8 +80,6 @@ export default function ResetPasswordPage() {
             setIsLoading(false);
         }
     };
-
-    if (!isClient) return null; // Evita renderizar en el server
 
     return (
         <div className="flex items-center justify-center min-h-[70vh]">
