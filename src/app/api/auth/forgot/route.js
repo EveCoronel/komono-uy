@@ -31,7 +31,7 @@ export async function POST(request) {
   // Aquí deberías enviar el email con el link:
   // https://tusitio.com/reset-password?token=TOKEN
   // Por ahora solo lo devolvemos para pruebas:
-  const resetLink = `${process.env.NEXT_PUBLIC_BASE_URL}/login/forgot-password/reset?token=${token}`;
+  const resetLink = `${process.env.DOMAIN_URL}/login/forgot-password/reset?token=${token}`;
   await sendPasswordResetEmail(email, resetLink);
   return NextResponse.json({ message: "Si el email existe, recibirás un correo", token });
 }

@@ -180,7 +180,7 @@ export async function sendNewAccountEmail(email, name, additionalMessage = "") {
             <tr>
               <td align="center" style="padding:30px 0 0 0;font-family:Arial,sans-serif;font-size:12px;color:#b0b0b0;">
                 © 2025 KOMONO UY<br>
-                <a href="${DOMAIN_URL}" style="color:#9ca3af;text-decoration:none;">www.komono-uy.com</a>
+                <a href="${DOMAIN_URL}" style="color:#9ca3af;text-decoration:none;">${DOMAIN_URL}</a>
               </td>
             </tr>
           </table>
