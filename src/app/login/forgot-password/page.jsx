@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,16 +13,22 @@ import { useRouter } from "next/navigation";
 
 export default function ForgotPasswordPage() {
     const router = useRouter();
+    const { user, loading } = useAuth();
     const [email, setEmail] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [submitted, setSubmitted] = useState(false);
     const [error, setError] = useState("");
-    const { user, loading } = useAuth();
+
+    useEffect(() => {
+        if (!loading && user) {
+            router.push("/");
+        }
+    }, [loading, user, router]);
 
     if (loading || user) {
-        router.push("/");
-        return; // Prevent rendering the auth page if user is already logged in
+        return null; // No renderices nada mientras redirige
     }
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsLoading(true);
