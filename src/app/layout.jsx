@@ -6,6 +6,7 @@ import { CartProvider } from "@/context/CartContext";
 import { Toaster } from "sonner";
 import ContactButtons from "@/components/ContactButtons";
 import ScrollToTopButton from "@/components/ScrollToTopButton";
+import { Analytics } from "@vercel/analytics/next";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -47,6 +48,7 @@ export default function RootLayout({ children }) {
         </AuthProvider>
         <ContactButtons />
         <ScrollToTopButton />
+        <Analytics />
       </body>
     </html>
   );
