@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
     Card,
@@ -22,12 +22,17 @@ export default function ResetPasswordPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [mensaje, setMensaje] = useState("");
     const [error, setError] = useState("");
+    const [isClient, setIsClient] = useState(false);
 
     const router = useRouter();
     const searchParams = useSearchParams(); // ✅ usar hook de Next.js
     const token = searchParams.get("token"); // ✅ forma correcta
 
     const { user, loading } = useAuth();
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
 
     useEffect(() => {
         if (!token) {
@@ -75,6 +80,8 @@ export default function ResetPasswordPage() {
             setIsLoading(false);
         }
     };
+
+    if (!isClient) return null; // Evita renderizar en el server
 
     return (
         <div className="flex items-center justify-center min-h-[70vh]">
