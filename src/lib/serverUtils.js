@@ -8,6 +8,16 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+const DOMAIN_URL = process.env.DOMAIN_URL || "https://komono-uy.com";
+
+const isSale = (item) => {
+  if (!item.sale_price || !item.sale_effective_period) return false;
+  const now = Date.now();
+  const start = new Date(item.sale_effective_period.start).getTime();
+  const end = new Date(item.sale_effective_period.end).getTime();
+  return now >= start && now <= end;
+};
+
 const funPaddedNumber = (num) => num.toString().padStart(5, "0");
 
 const getProductsHtml = (products) => {
@@ -22,7 +32,7 @@ const getProductsHtml = (products) => {
         />
         <div>
           <div style="font-weight:500;color:#111;">${item.name} <span style="color:#475569;font-weight:400;">x${item.quantity}</span></div>
-          <div style="font-size:0.95rem;color:#444;">$${(Number(item.price) * Number(item.quantity)).toFixed(2)}</div>
+          <div style="font-size:0.95rem;color:#444;">$${isSale(item) ? item.sale_price : item.price}</div>
         </div></li>`
     )
     .join("");
@@ -57,11 +67,15 @@ export async function sendUserOrderConfirmation(order, data) {
       <ul style="padding-left:18px;margin:0 0 8px 0;color:#475569;">
         ${getProductsHtml(data.cart)}
       </ul>
+      ${data.discount ? `<p style="margin:0 0 8px 0;"><b>Descuento aplicado:</b> $${data.discount}</p>` : ""}
       <p style="margin:10px 0 0 0;"><b>Total:</b> $${data.total}</p>
       <div style="margin-top:6px;">${getDeliveryDetailsHTML(data)}</div>
     </div>
     <hr style="margin:24px 0 16px 0;border:none;border-top:1px solid #e5e7eb;">
-    <p style="font-size:1rem;margin:10px 0 0 0;">Ante cualquier consulta, respondé a este mail o escribinos por <a href="https://wa.me/598XXXXXXXX" style="color:#16a34a;text-decoration:none;font-weight:500;">WhatsApp</a>.</p>
+    <p style="font-size:1rem;margin:10px 0 0 0;">
+      Ante cualquier consulta, respondé a este mail o escribinos por 
+      <a href="https://www.instagram.com/komono.uy" style="color:#16a34a;text-decoration:none;font-weight:500;">Instagram</a>.
+    </p>
     <div style="color:#a3a3a3;font-size:0.85rem;margin-top:24px;">KOMONO UY - Pins, llaveros y papelería con onda</div>
   </div>`
 
@@ -143,7 +157,7 @@ export async function sendNewAccountEmail(email, name, additionalMessage = "") {
             <!-- CTA Button -->
             <tr>
               <td align="center" style="padding:24px 0 24px 0;">
-                <a href="https://komono-uy.com" 
+                <a href="${DOMAIN_URL}" 
                    style="background:#111827;color:#fff;text-decoration:none;padding:14px 32px;border-radius:6px;font-size:16px;font-family:Arial,sans-serif;display:inline-block;">
                   Ir a la tienda
                 </a>
@@ -166,7 +180,7 @@ export async function sendNewAccountEmail(email, name, additionalMessage = "") {
             <tr>
               <td align="center" style="padding:30px 0 0 0;font-family:Arial,sans-serif;font-size:12px;color:#b0b0b0;">
                 © 2025 KOMONO UY<br>
-                <a href="https://komono-uy.com" style="color:#9ca3af;text-decoration:none;">www.komono-uy.com</a>
+                <a href="${DOMAIN_URL}" style="color:#9ca3af;text-decoration:none;">www.komono-uy.com</a>
               </td>
             </tr>
           </table>
@@ -246,7 +260,7 @@ export async function sendPasswordResetEmail(email, resetLink) {
           <tr>
             <td align="center" style="padding:30px 0 0 0;font-family:Arial,sans-serif;font-size:12px;color:#b0b0b0;">
               © 2025 KOMONO UY<br>
-              <a href="https://komono-uy.com" style="color:#9ca3af;text-decoration:none;">www.komono-uy.com</a>
+              <a href="${DOMAIN_URL}" style="color:#9ca3af;text-decoration:none;">www.komono-uy.com</a>
             </td>
           </tr>
         </table>
@@ -265,5 +279,83 @@ export async function sendPasswordResetEmail(email, resetLink) {
     console.log("New account email sent:", resp.messageId);
   } catch (error) {
     console.error("Error sending new account email:", error);
+  }
+}
+
+export async function sendNotificationEmail({ email, type, message, orderNumber }) {
+  try {
+    // Define título y mensaje según el tipo de notificación
+    let title = "Notificación de KOMONO UY";
+    let body = message;
+
+    if (type === "order_status") {
+      title = "Actualización de tu pedido";
+      body = `Tu pedido${orderNumber ? ` #${orderNumber}` : ""} ha cambiado de estado.<br>${message}`;
+    } else if (type === "promo") {
+      title = "¡Nueva promoción disponible!";
+      body = message;
+    } else if (type === "reminder") {
+      title = "Recordatorio";
+      body = message;
+    }
+    // Puedes agregar más tipos según tu lógica
+
+    const notificationHTML = `
+      <html lang="es" style="margin:0;padding:0;">
+      <head>
+        <meta charset="UTF-8" />
+        <title>${title}</title>
+        <meta name="viewport" content="width=device-width,initial-scale=1"/>
+      </head>
+      <body style="margin:0; padding:0; background-color:#f7fafc;">
+        <table width="100%" bgcolor="#f7fafc" cellpadding="0" cellspacing="0" style="padding: 32px 0;">
+          <tr>
+            <td align="center">
+              <table width="100%" max-width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.06);padding:32px 0 16px 0;max-width:600px;">
+                <!-- Header -->
+                <tr>
+                  <td align="center" style="padding-bottom:16px;">
+                    <img src="https://res.cloudinary.com/dqmsvs28j/image/upload/v1752360388/LogoKomono_10_gksvf3.png" alt="KOMONO UY" width="120" style="display:block;border-radius:8px;" />
+                  </td>
+                </tr>
+                <!-- Title -->
+                <tr>
+                  <td align="center" style="font-family:Arial, Helvetica, sans-serif; color:#111827;">
+                    <h1 style="margin:0 0 8px 0; font-size:22px;">${title}</h1>
+                    <p style="margin:0 0 16px 0; font-size:16px;color:#4B5563;">
+                      ${body}
+                    </p>
+                  </td>
+                </tr>
+                <!-- Divider -->
+                <tr>
+                  <td>
+                    <hr style="border:none;border-top:1px solid #e5e7eb; margin:16px 0;">
+                  </td>
+                </tr>
+                <!-- Footer -->
+                <tr>
+                  <td align="center" style="padding:20px 0 0 0;font-family:Arial,sans-serif;font-size:12px;color:#b0b0b0;">
+                    © 2025 KOMONO UY<br>
+                    <a href="${DOMAIN_URL}" style="color:#9ca3af;text-decoration:none;">www.komono-uy.com</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `;
+
+    let resp = await transporter.sendMail({
+      from: '"KOMONO UY" <ec.business.ia@gmail.com>',
+      to: email,
+      subject: title,
+      html: notificationHTML,
+    });
+    console.log("Notification email sent:", resp.messageId);
+  } catch (error) {
+    console.error("Error sending notification email:", error);
   }
 }

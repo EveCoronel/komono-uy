@@ -26,6 +26,9 @@ export default async function Home() {
 
       <CategoriesGrid categories={categories} />
       {/* Products Grid */}
+      <h2 className="text-2xl font-semibold text-gray-800 mb-8">
+        Catálogo de Productos
+      </h2>
       <ProductsGrid products={products} />
     </div>
   );

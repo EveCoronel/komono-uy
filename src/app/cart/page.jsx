@@ -3,10 +3,17 @@ import { ShoppingCart, Trash2, Plus, Minus } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import Link from "next/link";
 import CheckoutModal from "@/components/CheckoutModal";
-
+import { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
+import OrderSuccessMessage from "@/components/OrderSuccessMessage";
 export default function CartPage() {
-    const { cart, removeFromCart, updateCartItem } = useCart();
-    const total = cart.reduce((acc, item) => acc + (item.sale_price || item.price) * item.quantity, 0);
+    const { cart, removeFromCart, updateCartItem, applyCoupon } = useCart();
+    const [couponCode, setCouponCode] = useState("");
+    const [discount, setDiscount] = useState(0);
+    const [error, setError] = useState("");
+    const { user } = useAuth();
+    const [success, setSuccess] = useState(false);
+
 
     // Helper para saber si el producto tiene oferta activa
     const isSale = (item) => {
@@ -17,6 +24,41 @@ export default function CartPage() {
         return now >= start && now <= end;
     };
 
+    const total = cart.reduce((acc, item) => acc + (isSale(item) ? item.sale_price : item.price) * item.quantity, 0);
+    const discountedTotal = total - total * discount;
+
+
+    const handleApplyCoupon = async () => {
+        setError("");
+        setDiscount(0);
+        if (!couponCode) {
+            setError("Ingresa un cupón");
+            return;
+        }
+        try {
+            const res = await fetch(`/api/coupons/validate`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ couponCode, userId: user?._id }),
+            });
+            const data = await res.json();
+            if (res.ok && data.valid) {
+                setDiscount(data.discount); // Por ejemplo, 0.10 para 10%
+                applyCoupon({ code: couponCode, discount: data.discount }); // <-- Guarda el cupón en el contexto
+                setError("");
+            } else {
+                setDiscount(0);
+                applyCoupon(null); // Limpia el cupón en el contexto si no es válido
+                setError(data.error || "Cupón no válido");
+            }
+        } catch (e) {
+            setDiscount(0);
+            applyCoupon(null);
+            setError("Error al validar el cupón");
+        }
+    };
+
+
     // Para sumar/restar cantidad (requiere que tu CartContext tenga updateCartItem)
     const handleChangeQty = (item, delta) => {
         const maxQty = Number(item.stock) || 0;
@@ -25,6 +67,13 @@ export default function CartPage() {
         if (newQty < 1) return removeFromCart(item._id);
         updateCartItem(item._id, newQty);
     };
+
+    if (success) {
+        return (
+            <OrderSuccessMessage />
+        );
+    }
+
 
     return (
         <div className="max-w-4xl mx-auto px-4 py-8">
@@ -45,6 +94,7 @@ export default function CartPage() {
                     {cart.map((item) => {
                         const saleActive = isSale(item);
                         const priceToShow = saleActive ? item.sale_price : item.price;
+                        console.log("Sale active for item:", item.name, priceToShow);
                         const maxQty = Number(item.stock) || 0;
 
                         return (
@@ -118,12 +168,40 @@ export default function CartPage() {
                             </div>
                         );
                     })}
+                    <div className="w-full md:w-1/2 mt-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Cupón de descuento
+                        </label>
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="text"
+                                value={couponCode}
+                                onChange={(e) => setCouponCode(e.target.value)}
+                                className="flex-1 border rounded-md px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring focus:border-black"
+                                placeholder="Ingresá tu cupón"
+                            />
+                            <button
+                                onClick={handleApplyCoupon}
+                                className="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 transition text-sm"
+                            >
+                                Aplicar
+                            </button>
+                        </div>
+                        {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
+                    </div>
 
                     <div className="pt-4 border-t flex flex-col items-end">
-                        <p className="text-xl font-bold mb-2">
-                            Total: ${total.toFixed(2)}
-                        </p>
-                        <CheckoutModal />
+                        <div className="text-right">
+                            {discount > 0 && (
+                                <p className="text-sm text-green-600 mb-1">
+                                    Descuento aplicado: -{(discount * 100).toFixed(0)}%
+                                </p>
+                            )}
+                            <p className="text-xl font-bold">
+                                Total: ${discountedTotal.toFixed(2)}
+                            </p>
+                        </div>
+                        <CheckoutModal onSuccess={() => setSuccess(true)} />
                     </div>
                 </div>
             )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "../../components/ui/button";
@@ -18,9 +18,14 @@ export default function AuthPage() {
     const [error, setError] = useState("");
     const { user, loading, refreshUser } = useAuth();
 
-    if(loading || user){
-        router.push("/");
-        return; // Prevent rendering the auth page if user is already logged in
+    useEffect(() => {
+        if (!loading && user) {
+            router.push("/");
+        }
+    }, [loading, user, router]);
+
+    if (loading || user) {
+        return null;
     }
 
     const handleSubmit = async (e, isLogin) => {

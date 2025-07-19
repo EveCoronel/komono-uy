@@ -2,6 +2,7 @@ import connectDB from "@/lib/db";
 import Order from "@/models/Order";
 import User from "@/models/User";
 import { NextResponse } from 'next/server';
+import Product from "@/models/Product";
 
 export async function PUT(req, { params }) {
     const { id } = await params;
@@ -29,8 +30,18 @@ export async function PUT(req, { params }) {
                 { status: 403 }
             );
         }
+        if (status === "cancelled" && order.status !== "cancelled") {
+            // Devolver stock de cada producto
+            for (const item of order.products) {
+                await Product.findByIdAndUpdate(
+                    item.productId._id,
+                    { $inc: { stock: item.quantity } }
+                );
+            }
+        }
         // Update the order status
         order.status = status;
+
         await order.save();
 
         return NextResponse.json({ message: 'Order status updated successfully' });
@@ -42,3 +53,4 @@ export async function PUT(req, { params }) {
         );
     }
 }
+

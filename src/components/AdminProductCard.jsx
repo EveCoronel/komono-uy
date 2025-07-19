@@ -45,3 +45,4 @@ export default function AdminProductCard({ product, onEdit, onDelete }) {
     </div>
   );
 }
+  

@@ -139,7 +139,6 @@ export default function AdminProductsPage() {
 
     // Add/Edit submit
     const handleSubmit = async (e) => {
-        console.log("Submitting form:", form);
         e.preventDefault();
         setLoadingForm(true);
         setError("");
@@ -174,29 +173,47 @@ export default function AdminProductsPage() {
             }
 
             let imageUrls = [];
-            for (const image of images) {
-                const formData = new FormData();
-                formData.append("file", image);
-                const res = await fetch("/api/upload", { method: "POST", body: formData });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || "Error al subir imagen");
-                imageUrls.push(data.url);
+            // Si es edición, chequea si hay imágenes nuevas (tipo File/Blob)
+            const hasNewImages = images.some(img => typeof img !== "string");
+            if (hasNewImages) {
+                for (const image of images) {
+                    if (typeof image === "string") {
+                        // Ya es una URL, la agregamos directo
+                        imageUrls.push(image);
+                    } else {
+                        // Es un File/Blob, hay que subirla
+                        const formData = new FormData();
+                        formData.append("file", image);
+                        const res = await fetch("/api/upload", { method: "POST", body: formData });
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data.error || "Error al subir imagen");
+                        imageUrls.push(data.url);
+                    }
+                }
+            } else {
+                // No hay imágenes nuevas, usamos las existentes
+                imageUrls = form.images || [];
             }
+
             let body = {
                 ...form,
+                sale_price: form.sale_price ? parseFloat(form.sale_price) : null,
                 price: parseFloat(form.price),
-                images: imageUrls.length ? imageUrls : form.images || [],
+                images: imageUrls,
                 category: categoryToSave,
                 subcategory: subcategoryToSave,
             };
             let res;
             if (editProduct) {
+                // Solo enviar los campos que cambiaron
+                const changedFields = getChangedFields(editProduct, body);
                 res = await fetch(`/api/products/${editProduct._id}`, {
                     method: "PUT",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(body),
+                    body: JSON.stringify(changedFields),
                 });
             } else {
+                // Crear producto normalmente
                 res = await fetch("/api/products", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -208,6 +225,7 @@ export default function AdminProductsPage() {
                 throw new Error(data.error || "Error al guardar el producto");
             }
             setSuccess(editProduct ? "Producto editado correctamente" : "Producto creado correctamente");
+            toast.success(success);
             setAddProduct(false);
             setEditProduct(null);
             setForm({
@@ -269,8 +287,8 @@ export default function AdminProductsPage() {
     };
 
     if (loading || !user || user?.role !== "admin") {
-    return <div className="p-8 text-center">Cargando...</div>;
-  }
+        return <div className="p-8 text-center">Cargando...</div>;
+    }
 
     return (
         <div className="min-h-screen pb-20">
@@ -322,4 +340,20 @@ export default function AdminProductsPage() {
             />
         </div>
     );
+}
+
+// Utilidad para obtener solo los campos modificados
+function getChangedFields(original, updated) {
+    const changed = {};
+    for (const key in updated) {
+        // Para objetos anidados como sale_effective_period, puedes hacer una comparación más profunda si lo necesitas
+        if (typeof updated[key] === "object" && updated[key] !== null && original[key]) {
+            if (JSON.stringify(updated[key]) !== JSON.stringify(original[key])) {
+                changed[key] = updated[key];
+            }
+        } else if (updated[key] !== original[key]) {
+            changed[key] = updated[key];
+        }
+    }
+    return changed;
 }

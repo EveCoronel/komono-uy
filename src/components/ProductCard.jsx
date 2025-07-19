@@ -87,8 +87,17 @@ export default function ProductCard({ product, onClick }) {
             <ProductCarousel images={images} />
 
             <div className="p-4 space-y-2">
-                <h3 className="text-base font-semibold text-gray-900">{name}</h3>
-                <p className="text-sm text-gray-600 line-clamp-2">{description}</p>
+                <h3
+                    className="text-base font-semibold text-gray-900 line-clamp-2 min-h-[2.8em] max-h-[2.8em] break-words"
+                    title={name}
+                >
+                    {name.length > 60 ? name.slice(0, 57) + "..." : name}
+                </h3>
+                <p
+                  className="text-sm text-gray-600 line-clamp-3 min-h-[3.6em] max-h-[3.6em] break-words"
+                >
+                  {description}
+                </p>
                 <div className="flex justify-between items-end pt-2 border-t border-gray-100">
                     <div>
                         {saleActive ? (
@@ -143,6 +152,14 @@ export default function ProductCard({ product, onClick }) {
                         Agregar
                     </button>
                 </div>
+                {/* Puntuación */}
+                {/* {typeof product.ratingAvg === "number" && product.ratingCount > 0 && (
+                    <div className="flex items-center gap-1 mt-1 text-xs text-yellow-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 fill-yellow-400 text-yellow-400" viewBox="0 0 24 24"><path d="M12 17.75l-6.172 3.245 1.179-6.873-5-4.873 6.9-1.002L12 2.5l3.093 6.747 6.9 1.002-5 4.873 1.179 6.873z"/></svg>
+                        <span>{product.ratingAvg.toFixed(1)} / 5</span>
+                        <span className="text-gray-400">({product.ratingCount})</span>
+                    </div>
+                )} */}
             </div>
         </div>
     );

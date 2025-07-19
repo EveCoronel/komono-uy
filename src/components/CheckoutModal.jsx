@@ -1,7 +1,7 @@
 "use client";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useForm } from "react-hook-form";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import clsx from "clsx";
@@ -21,14 +21,16 @@ const puntosDeRetiro = [
     }
 ];
 
-export function CheckoutModal() {
+export function CheckoutModal({ onSuccess }) {
     const { user } = useAuth();
-    const { cart, clearCart } = useCart();
+    const { cart, clearCart, coupon } = useCart();
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
     const [selectedPunto, setSelectedPunto] = useState(puntosDeRetiro[0].value);
+    const [discount, setDiscount] = useState(0);
+    const [couponError, setCouponError] = useState("");
     // console.log("user", user);
     const {
         register,
@@ -72,7 +74,9 @@ export function CheckoutModal() {
                     ...data,
                     cart,
                     envioCost: envioType === "envio" ? 200 : 0,
-                    total,
+                    total: (total - total * discount).toFixed(2),
+                    discount: (total * discount).toFixed(2),
+                    coupon: coupon?.code || null,
                 }),
             });
             console.log("Order response:", res);
@@ -80,6 +84,7 @@ export function CheckoutModal() {
                 setSuccess(true);
                 clearCart();
                 reset();
+                onSuccess?.();
             } else {
                 const error = await res.json();
                 setErrorMsg(error.message || "Error al procesar la orden");
@@ -90,23 +95,36 @@ export function CheckoutModal() {
         setLoading(false);
     };
 
-    if (success)
-        return (
-            <Dialog.Root open>
-                <Dialog.Portal>
-                    <Dialog.Overlay className="fixed inset-0 bg-black/50 z-40" />
-                    <Dialog.Content className="fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl p-8 w-full max-w-lg shadow-xl">
-                        <h2 className="text-xl font-bold mb-4">¡Orden recibida!</h2>
-                        <p className="mb-2">
-                            A la brevedad te contactaremos para coordinar el pago y envío. ¡Gracias por tu compra!
-                        </p>
-                        <Dialog.Close className="mt-6 px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800">
-                            Cerrar
-                        </Dialog.Close>
-                    </Dialog.Content>
-                </Dialog.Portal>
-            </Dialog.Root>
-        );
+    const validateCouponWithEmail = async (email) => {
+        setCouponError("");
+        setDiscount(0);
+        if (!coupon) return;
+        try {
+            const res = await fetch(`/api/coupons/validate`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ couponCode: coupon.code, email }),
+            });
+            const data = await res.json();
+            if (res.ok && data.valid) {
+                setDiscount(data.discount || 0);
+                setCouponError("");
+            } else {
+                setDiscount(0);
+                setCouponError(data.error || "Cupón no válido para este email");
+            }
+        } catch {
+            setDiscount(0);
+            setCouponError("Error al validar el cupón");
+        }
+    };
+
+    useEffect(() => {
+        if (!user && coupon && step === 4) {
+            validateCouponWithEmail(watch("email"));
+        }
+        // eslint-disable-next-line
+    }, [step, coupon, watch("email")]);
 
     return (
         <Dialog.Root>
@@ -448,9 +466,20 @@ export function CheckoutModal() {
                                                     : "Transferencia bancaria"}
                                         </div>
                                     </div>
+                                    {coupon && (
+                                        <div className="mb-2 text-green-600">
+                                            <span className="font-semibold">Cupón utilizado:</span> {coupon.code}
+                                            {discount > 0 && (
+                                                <span> — Descuento: -${(total * discount).toFixed(2)}</span>
+                                            )}
+                                            {couponError && (
+                                                <div className="text-red-500 text-xs mt-1">Cupón no aplicado: {couponError}</div>
+                                            )}
+                                        </div>
+                                    )}
                                     <div className="border-t pt-4 mt-4 text-right">
                                         <span className="text-lg font-bold">
-                                            Total: ${total.toFixed(2)}
+                                            Total: ${(total - total * discount).toFixed(2)}
                                         </span>
                                     </div>
                                 </div>

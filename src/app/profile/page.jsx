@@ -4,8 +4,7 @@ import { Button } from "@components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import OrdersGrid from "@/components/OrdersGrid";
 import ProfileInfo from "@/components/ProfileInfo";
-import AddressesGrid from "@/components/AddressesGrid";
-
+import RequireLoginMessage from "@/components/RequireLoginMessage";
 export default function ProfilePage() {
   const { user, setUser } = useAuth();
   const router = useRouter();
@@ -27,7 +26,7 @@ export default function ProfilePage() {
   };
 
   if (!user) {
-    return <div className="p-8 text-center">Debes iniciar sesión para visualizar esta página.</div>;
+    return <RequireLoginMessage />;
   }
 
   return (

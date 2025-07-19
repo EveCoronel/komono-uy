@@ -96,6 +96,15 @@ export async function getProducts(filters = {}) {
         return true;
     });
 
+    // Ordenar por precio efectivo si corresponde
+    if (order === "precio_asc" || order === "precio_desc") {
+        filteredProducts.sort((a, b) => {
+            const priceA = a.sale_price && a.sale_price > 0 && a.sale_price < a.price ? a.sale_price : a.price;
+            const priceB = b.sale_price && b.sale_price > 0 && b.sale_price < b.price ? b.sale_price : b.price;
+            return order === "precio_asc" ? priceA - priceB : priceB - priceA;
+        });
+    }
+
     const serializedProducts = filteredProducts.map(product => ({
         ...product,
         _id: product._id.toString(),

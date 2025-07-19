@@ -29,7 +29,15 @@ const productSchema = new mongoose.Schema({
     min: [0, 'El precio de oferta no puede ser negativo'],
     validate: {
       validator: function (v) {
-        return v === null || v < this.price;
+        // Si es update, this no tiene el documento, sino el query
+        if (this instanceof mongoose.Query) {
+          // En update, los valores nuevos están en this.getUpdate()
+          const update = this.getUpdate();
+          const price = update.price !== undefined ? update.price : this.model.findOne(this.getQuery()).price;
+          return v == null || v < price;
+        }
+        // En save/create
+        return v == null || v < this.price;
       },
       message: 'El precio de oferta debe ser menor que el precio regular',
     },

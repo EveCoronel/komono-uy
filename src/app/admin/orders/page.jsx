@@ -63,6 +63,22 @@ export default function AdminOrdersPage() {
                 });
                 toast.dismiss(t); // <-- aquí el cambio
                 if (res.ok) {
+                  let orderData = orders.find(o => o._id === orderId);
+                  if (orderData) {
+                    let stateLabel = orderStates.find(s => s.id === newStatus)?.label || newStatus;
+                    let content = `El estado de tu pedido #${orderData.orderNumber} se ha actualizado a ${stateLabel}.`;
+                    let title = "Actualización de pedido";
+                    let link = `/profile`;
+                    try {
+                      await fetch("/api/notifications", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ user, content, title, order: { _id: orderId, orderNumber: orders.find(o => o._id === orderId)?.orderNumber }, type: "order_status", isGlobal: false, link }),
+                      });
+                    } catch (error) {
+                      console.error("Error al enviar notificación:", error);
+                    }
+                  }
                   setOrders(orders =>
                     orders.map(order =>
                       order._id === orderId ? { ...order, status: newStatus } : order
@@ -78,14 +94,14 @@ export default function AdminOrdersPage() {
             </button>
             <button
               className="bg-gray-200 hover:bg-gray-300 text-gray-800 rounded px-4 py-1 text-sm font-semibold"
-              onClick={() => toast.dismiss(t.id)}
+              onClick={() => { toast.dismiss(t); }}
             >
               Cancelar
             </button>
           </div>
         </div>
       ),
-      { duration: 10000 }
+      { duration: 10000, dismissible: true }
     );
   };
 

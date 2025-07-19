@@ -1,6 +1,7 @@
 "use client";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { toast } from "sonner"; // Si usás otra librería, cambialo
+import { useAuth } from "@/context/AuthContext"; // Asegúrate de importar tu contexto de auth
 
 // Creamos el contexto
 const CartContext = createContext();
@@ -46,6 +47,9 @@ export const useCart = () => useContext(CartContext);
 // Proveedor del contexto
 export function CartProvider({ children }) {
   const [cart, setCart] = useState([]);
+  const [coupon, setCoupon] = useState(null); // { code: "PROMO10", discount: 0.10 }
+  const { user } = useAuth(); // Suponiendo que tienes el usuario aquí
+  const prevUserId = useRef(user?._id);
 
   // Cargar carrito desde localStorage al inicio
   useEffect(() => {
@@ -57,6 +61,47 @@ export function CartProvider({ children }) {
   useEffect(() => {
     localStorage.setItem("cart", JSON.stringify(cart));
   }, [cart]);
+
+  // Sincronizar carrito con backend cuando cambia y hay usuario logueado
+  useEffect(() => {
+    if (user?._id) {
+      fetch("/api/cart", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user._id,
+          items: cart.map(({ _id, quantity }) => ({ product: _id, quantity })),
+        }),
+      });
+    }
+  }, [cart, user]);
+
+  // Cargar carrito del usuario desde la base de datos al iniciar sesión
+  useEffect(() => {
+    if (!user?._id) return;
+    fetch(`/api/cart?userId=${user._id}`)
+      .then(res => res?.json())
+      .then(data => {
+        if (data?.items) {
+          setCart(
+            data.items.map(item => ({
+              ...item.product, // Si tu API devuelve el producto expandido
+              quantity: item.quantity
+            }))
+          );
+        }
+      });
+  }, [user]);
+
+  // Si el usuario estaba logueado y ahora no, vacía el carrito y el localStorage
+  useEffect(() => {
+    if (prevUserId.current && !user?._id) {
+      setCart([]);
+      setCoupon(null);
+      localStorage.removeItem("cart");
+    }
+    prevUserId.current = user?._id;
+  }, [user]);
 
   const updateCartItem = (id, quantity) => {
     setCart(prev => prev.map(item =>
@@ -98,10 +143,25 @@ export function CartProvider({ children }) {
     toast.success("Producto eliminado del carrito");
   };
 
-  const clearCart = () => setCart([]);
+  const clearCart = () => {
+    setCart([]);
+    setCoupon(null);
+  };
+
+  const applyCoupon = (couponObj) => setCoupon(couponObj);
+  const clearCoupon = () => setCoupon(null);
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, clearCart, updateCartItem }}>
+    <CartContext.Provider value={{
+      cart,
+      addToCart,
+      removeFromCart,
+      clearCart,
+      updateCartItem,
+      coupon,
+      applyCoupon,
+      clearCoupon
+    }}>
       {children}
     </CartContext.Provider>
   );

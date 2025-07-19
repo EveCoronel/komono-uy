@@ -3,11 +3,28 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "../context/AuthContext";
-import { User, LayoutDashboard, ShoppingCart, Menu, X, Heart } from "lucide-react";
+import { User, LayoutDashboard, ShoppingCart, Menu, X, Heart, Bell } from "lucide-react";
 import { Button } from "./ui/button";
 import { useCart } from "@/context/CartContext";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import NotificationsModal from "./NotificationsModal";
+
+async function onMarkAsRead(id, setNotifications) {
+    try {
+        await fetch('/api/notifications', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, read: true }),
+        });
+        // Actualiza el estado local de notificaciones
+        setNotifications(prev =>
+            prev.map(n => n._id === id ? { ...n, read: true } : n)
+        );
+    } catch (error) {
+        console.error('Error al marcar como leída:', error);
+    }
+}
 
 export default function Navbar() {
     const router = useRouter();
@@ -15,7 +32,30 @@ export default function Navbar() {
     const { user, logout } = useAuth();
     const { cart } = useCart();
     const [menuOpen, setMenuOpen] = useState(false);
+    const [showNotifications, setShowNotifications] = useState(false);
     const menuRef = useRef(null);
+
+    // Supón que tienes las notificaciones en un estado:
+    const [notifications, setNotifications] = useState([]);
+
+    // Polling de notificaciones cada 3 minutos
+    useEffect(() => {
+        if (!user) return;
+        let interval;
+        const fetchNotifications = async () => {
+            try {
+                const res = await fetch(`/api/notifications/user/${user._id}`);
+                if (res.ok) {
+                    setNotifications(await res.json());
+                }
+            } catch {
+                setNotifications([]);
+            }
+        };
+        fetchNotifications();
+        interval = setInterval(fetchNotifications, 180000); // 3 minutos
+        return () => clearInterval(interval);
+    }, [user]);
 
     // Calcula los ítems del carrito solo si cambia el cart
     const totalItems = useMemo(() =>
@@ -44,6 +84,9 @@ export default function Navbar() {
         { label: "Inicio", href: "/" },
         { label: "Productos", href: "/products" }
     ];
+
+    // Cantidad de notificaciones no leídas
+    const unreadCount = notifications.filter(n => !n.read).length;
 
     return (
         <nav
@@ -133,6 +176,29 @@ export default function Navbar() {
                         >
                             <Heart className="h-6 w-6 text-gray-700 dark:text-gray-200" />
                         </Button>
+                        {user && (
+                            <>
+                                <Button
+                                    variant="ghost"
+                                    onClick={() => setShowNotifications(true)}
+                                    aria-label="Notificaciones"
+                                    className="relative p-2"
+                                >
+                                    <Bell className="h-6 w-6 text-gray-700 dark:text-gray-200" />
+                                    {unreadCount > 0 && (
+                                        <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold px-1 py-0.5 rounded-full animate-bounce">
+                                            {unreadCount}
+                                        </span>
+                                    )}
+                                </Button>
+                                <NotificationsModal
+                                    open={showNotifications}
+                                    onMarkAsRead={id => onMarkAsRead(id, setNotifications)}
+                                    onClose={() => setShowNotifications(false)}
+                                    notifications={notifications}
+                                />
+                            </>
+                        )}
                         {/* --- SIEMPRE VISIBLE: CARRITO --- */}
                         <Button
                             variant="ghost"

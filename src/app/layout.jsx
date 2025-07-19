@@ -4,6 +4,8 @@ import Navbar from "../components/Navbar";
 import { AuthProvider } from "../context/AuthContext";
 import { CartProvider } from "@/context/CartContext";
 import { Toaster } from "sonner";
+import ContactButtons from "@/components/ContactButtons";
+import ScrollToTopButton from "@/components/ScrollToTopButton";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -43,6 +45,8 @@ export default function RootLayout({ children }) {
             </main>
           </CartProvider>
         </AuthProvider>
+        <ContactButtons />
+        <ScrollToTopButton />
       </body>
     </html>
   );

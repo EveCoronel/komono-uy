@@ -16,7 +16,8 @@ const OrderSchema = new Schema({
     deliveryType: { type: String, enum: ['pickup', 'delivery'], required: true },
     paymentMethod: { type: String },
     address: addressSchema, // Solo para delivery
-    pickupPoint: { type: String }, // Solo para pickup
+    pickupPoint: { type: String }, // Solo para pickup,
+    discount: { type: Number, default: 0 },
     status: {
         type: String,
         enum: ["pending_payment", "paid", "preparing", "ready_pickup", "shipped", "delivered", "cancelled"],

@@ -4,7 +4,7 @@ import Counter from "@/models/Counter";
 import Order from "@/models/Order";
 import User from "@/models/User";
 import Product from "@/models/Product"; // Asegúrate de importar el modelo
-
+import Cart from "@/models/Cart";
 // Helper: compara dos direcciones
 function sameAddress(a, b) {
     return (
@@ -124,7 +124,7 @@ export async function POST(req) {
         await sendBusinessOrderNotification(order, data);
         // Email al usuario
         await sendUserOrderConfirmation(order, data);
-
+        await Cart.findOneAndDelete({ user: user?._id });
         return Response.json({ ok: true, orderId: order._id });
     } catch (err) {
         console.error(err);
